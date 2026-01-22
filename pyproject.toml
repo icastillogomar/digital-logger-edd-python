@@ -5,26 +5,19 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "digital-edd-logger"
 version = "1.0.0"
-description = "SDK de logging para servicios Digital EDD"
+description = "SDK de logging para servicios Python"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
 authors = [
     {name = "Digital EDD Team"}
 ]
-dependencies = []
+dependencies = [
+    "psycopg2-binary>=2.9.0",
+    "google-cloud-pubsub>=2.0.0",
+]
 
 [project.optional-dependencies]
-postgres = [
-    "psycopg2-binary>=2.9.0",
-]
-pubsub = [
-    "google-cloud-pubsub>=2.0.0",
-]
-all = [
-    "psycopg2-binary>=2.9.0",
-    "google-cloud-pubsub>=2.0.0",
-]
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",

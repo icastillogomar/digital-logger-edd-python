@@ -41,13 +41,9 @@ def log_info(message: str) -> None:
     print(f"{prefix} {message}")
 
 
-def is_gcp_environment() -> bool:
-    return any([
-        os.getenv("K_SERVICE"),
-        os.getenv("GOOGLE_CLOUD_PROJECT"),
-        os.getenv("GCP_PROJECT"),
-        os.getenv("KUBERNETES_SERVICE_HOST"),
-    ]) and os.getenv("ENV", "").lower() != "local"
+def is_production() -> bool:
+    env = os.getenv("ENV", "").lower()
+    return env in ("prod", "production", "qas", "qa")
 
 
 def get_mexico_time_as_utc() -> str:

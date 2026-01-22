@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Optional
 from .interfaces import TraceLog, RequestInfo, ResponseInfo, LogLevel
 from .drivers import BaseDriver, ConsoleDriver
-from .utils import is_gcp_environment, get_mexico_time_as_utc, log_error, log_warning
+from .utils import is_production, get_mexico_time_as_utc, log_error, log_warning
 
 
 class EddLogger:
@@ -17,14 +17,9 @@ class EddLogger:
         return self._driver
 
     def _create_driver(self) -> BaseDriver:
-        if is_gcp_environment():
-            try:
-                from .drivers import PubSubDriver
-                return PubSubDriver()
-            except Exception as e:
-                log_error(f"No se pudo inicializar PubSubDriver: {e}")
-                log_warning("Usando ConsoleDriver como fallback")
-                return ConsoleDriver()
+        if is_production():
+            from .drivers import PubSubDriver
+            return PubSubDriver()
         else:
             try:
                 from .drivers import PostgresDriver
