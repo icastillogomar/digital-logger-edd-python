@@ -21,6 +21,7 @@ class ResponseInfo:
 
 @dataclass
 class TraceLog:
+    typeStream = str,
     traceId: str
     timestamp: str
     service: str
@@ -36,6 +37,7 @@ class TraceLog:
 
     def to_dict(self) -> Dict[str, Any]:
         result = {
+            "typeStream": self.typeStream,
             "traceId": self.traceId,
             "timestamp": self.timestamp,
             "service": self.service,

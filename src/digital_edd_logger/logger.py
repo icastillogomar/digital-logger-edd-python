@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Optional
 from .interfaces import TraceLog, RequestInfo, ResponseInfo, LogLevel
 from .drivers import BaseDriver, ConsoleDriver
-from .utils import is_production, get_mexico_time_as_utc, log_error, log_warning
+from .utils import is_production, get_mexico_time_as_utc, log_error, log_warning, log_info
 
 
 class EddLogger:
@@ -33,6 +33,7 @@ class EddLogger:
         self._driver = driver
 
     def send_trace_log(self, trace: TraceLog) -> str:
+        log_info(f"send_trace_log se envio trama Log")
         record = trace.to_dict()
         return self.driver.send(record)
 
@@ -40,6 +41,7 @@ class EddLogger:
         self,
         *,
         trace_id: str,
+        typeStream: str = "logsStream",
         level: LogLevel = "INFO",
         action: str = "",
         context: Optional[str] = None,
@@ -74,6 +76,7 @@ class EddLogger:
             )
 
         trace = TraceLog(
+            typeStream=typeStream,
             traceId=trace_id,
             timestamp=get_mexico_time_as_utc(),
             service=service or self.service,
