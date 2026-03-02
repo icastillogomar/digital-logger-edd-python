@@ -2,7 +2,7 @@
 
 SDK de logging para servicios Python con soporte para PostgreSQL (desarrollo) y Google Cloud PubSub (producción).
 
-## Instalación
+## Instalación.
 
 ```bash
 pip install git+https://github.com/icastillogomar/digital-logger-edd-python.git
