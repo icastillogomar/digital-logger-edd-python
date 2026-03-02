@@ -24,7 +24,7 @@ class PubSubDriver(BaseDriver):
         
         self._client = pubsub_v1.PublisherClient()
         self._topic = self._client.topic_path(self._project_id, self.topic_name)
-        log_info(f"PubSub conectado al topic: {self.topic_name}")
+        log_info(f"Pub/Sub conectado al topic: {self.topic_name}")
 
     def send(self, record: dict) -> str:
         if not self.publish_enabled:
