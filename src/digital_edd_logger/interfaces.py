@@ -21,7 +21,7 @@ class ResponseInfo:
 
 @dataclass
 class TraceLog:
-    typeStream = str,
+    typeStream: str
     traceId: str
     timestamp: str
     service: str
