@@ -5,29 +5,35 @@ from ..utils import log_info
 
 class PostgresDriver(BaseDriver):
 
-    TABLE_NAME = "LGS_EDD_SDK_HIS"
+    TABLE_NAME = "LGS_EDD_IA_LOGS_HIS"
 
     DDL = f"""
-    CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
-        id SERIAL PRIMARY KEY,
-        traceId VARCHAR(255) NOT NULL,
-        timeLocal TIMESTAMP NOT NULL,
-        timeUTC TIMESTAMP NOT NULL,
-        service VARCHAR(255) NOT NULL,
-        level VARCHAR(50) NOT NULL,
-        "user" VARCHAR(255),
-        action VARCHAR(255),
-        context VARCHAR(255),
-        request JSONB,
-        response JSONB,
-        durationMs FLOAT,
-        tags TEXT,
-        messageInfo TEXT,
-        messageRaw TEXT,
-        flagSummary INTEGER NOT NULL DEFAULT 0
-    );
-    CREATE INDEX IF NOT EXISTS idx_{TABLE_NAME.lower()}_trace_id ON {TABLE_NAME}(traceId);
-    CREATE INDEX IF NOT EXISTS idx_{TABLE_NAME.lower()}_time_utc ON {TABLE_NAME}(timeUTC);
+    CREATE TABLE IF NOT EXISTS LGS_EDD_IA_LOGS_HIS (
+		id SERIAL PRIMARY KEY,
+		logId VARCHAR(255),
+		requestId VARCHAR(255),
+		requestType VARCHAR(255),
+		endpoint TEXT,
+		logAt TIMESTAMP NOT NULL,
+		level VARCHAR(50),
+		context TEXT,
+		message TEXT,
+		step VARCHAR(255),
+		durationMs DOUBLE PRECISION,
+		idTxn VARCHAR(255),
+		tags TEXT,
+		additionalData JSONB,
+		extra JSONB,
+		stacktrace TEXT,
+		ingestedAt TIMESTAMP NOT NULL,
+		serviceName VARCHAR(255),
+		requestMethod VARCHAR(50),
+		requestBody JSONB,
+		responseStatusCode INTEGER,
+		responseBody JSONB
+	);
+	CREATE INDEX IF NOT EXISTS idx_lgs_edd_ia_logs_his_request_id ON LGS_EDD_IA_LOGS_HIS(requestId);
+	CREATE INDEX IF NOT EXISTS idx_lgs_edd_ia_logs_his_log_at ON LGS_EDD_IA_LOGS_HIS(logAt);	
     """
 
     def __init__(self, db_url: str = None):
@@ -68,41 +74,65 @@ class PostgresDriver(BaseDriver):
     def send(self, record: dict) -> str:
         self._ensure_table()
 
-        import json
         from datetime import datetime
 
         sql = f"""
         INSERT INTO {self.TABLE_NAME} 
-            (traceId, timeLocal, timeUTC, service, level, "user", action, context, 
-             request, response, durationMs, tags, messageInfo, messageRaw, flagSummary)
+            (logId, requestId, requestType, endpoint, logAt, level, context, message,
+             step, durationMs, idTxn, tags, additionalData, extra, stacktrace,
+             ingestedAt, serviceName, requestMethod, requestBody, responseStatusCode,
+             responseBody)
         VALUES 
-            (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING id
         """
 
-        now = datetime.now()
-        now_utc = datetime.utcnow()
+        def _parse_timestamp(value):
+            if value is None:
+                return None
+            if isinstance(value, datetime):
+                return value
+            if isinstance(value, str):
+                normalized = value.replace("Z", "+00:00")
+                try:
+                    return datetime.fromisoformat(normalized)
+                except ValueError:
+                    return value
+            return value
 
-        request_json = json.dumps(record.get("request"), ensure_ascii=False) if record.get("request") else None
-        response_json = json.dumps(record.get("response"), ensure_ascii=False) if record.get("response") else None
+        now = datetime.utcnow()
+        request = record.get("request") or {}
+        response = record.get("response") or {}
         tags_str = ",".join(record.get("tags", [])) if record.get("tags") else None
 
         values = (
-            record.get("traceId"),
-            now,
-            now_utc,
-            record.get("service"),
+            record.get("logId") or record.get("traceId"),
+            record.get("requestId") or record.get("traceId"),
+            record.get("requestType"),
+            record.get("endpoint") or request.get("path"),
+            _parse_timestamp(
+                record.get("logAt") or
+                record.get("timestamp") or
+                record.get("receivedAt") or
+                record.get("respondedAt") or
+                now
+            ),
             record.get("level"),
-            record.get("user"),
-            record.get("action"),
             record.get("context"),
-            request_json,
-            response_json,
+            record.get("message") or record.get("messageInfo") or record.get("messageRaw"),
+            record.get("step") or record.get("action"),
             record.get("durationMs"),
+            record.get("idTxn") or (record.get("metadata") or {}).get("idTxn"),
             tags_str,
-            record.get("messageInfo"),
-            record.get("messageRaw"),
-            0,
+            record.get("additionalData"),
+            record.get("extra"),
+            record.get("stacktrace"),
+            _parse_timestamp(record.get("ingestedAt") or (record.get("metadata") or {}).get("ingestedAt") or now),
+            record.get("serviceName") or record.get("service"),
+            request.get("method"),
+            request.get("body"),
+            response.get("statusCode"),
+            response.get("body"),
         )
 
         with self._conn.cursor() as cur:

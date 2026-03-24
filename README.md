@@ -13,16 +13,26 @@ pip install git+https://github.com/icastillogomar/digital-logger-edd-python.git
 ```python
 from digital_edd_logger import logger
 
-logger.log(
-    trace_id="abc-123",
-    action="ORDER_CREATED",
+logger.sendTraceByLog(
+    log_id="bd24e7ad-2e41-4638-b129-c1dd7e125faa",
+    request_id="bd24e7ad-2e41-4638-b129-c1dd7e125faa",
+    request_type="HTTP",
+    endpoint="/api/orders",
+    log_at="2026-03-10 11:24:37.079000 UTC",
+    id_txn="bd24e7ad-2e41-4638-b129-c1dd7e125faa",
+    ingested_at="2026-03-10 11:24:37.079000 UTC",
+    level="INFO",
     context="OrderService",
-    method="POST",
-    path="/api/orders",
+    message="HTTP request/response trace",
+    step="RequestResponseLogger",
+    duration_ms=150.5,
+    tags= ["http", "middleware", "request-response"],
+    extra={"clientIp":  "201.116.168.4", "userAgent": "PostmanRuntime/7.52.0"},
+    service_name="my-service",
+    request_method= "GET",    
     request_body={"product": "ABC", "qty": 2},
     status_code=200,
-    response_body={"order_id": "12345"},
-    duration_ms=150.5,
+    response_body={"order_id": "12345"}
 )
 ```
 
@@ -44,71 +54,20 @@ GOOGLE_CLOUD_PROJECT=my-project-id
 
 ## Comportamiento
 
-| ENV | Driver | Destino |
-|-----|--------|---------|
-| `local` (o vacío) | PostgreSQL | Tabla `LGS_EDD_SDK_HIS` |
-| `prod`, `production`, `qa`, `qas` | PubSub | Topic `digital-edd-sdk` |
+| ENV                               | Driver     | Destino                      |
+|-----------------------------------|------------|------------------------------|
+| `local` (o vacío)                 | PostgreSQL | Tabla `LGS_EDD_IA_LOGS_HIS`  |
+| `prod`, `production`, `qa`, `qas` | PubSub     | Topic `digital-edd-sdk`      |
 
 Si falta configuración, usa `ConsoleDriver` como fallback y muestra el error en consola.
 
-## API
-
-```python
-logger.log(
-    trace_id: str,              # ID único de la traza
-    level: str = "INFO",        # DEBUG, INFO, WARNING, ERROR, CRITICAL
-    action: str = "",           # Acción registrada
-    context: str = None,        # Nombre del servicio/controller
-    method: str = None,         # GET, POST, PUT, DELETE
-    path: str = None,           # /api/endpoint
-    request_body: any = None,   # Body del request
-    status_code: int = None,    # 200, 400, 500, etc.
-    response_body: any = None,  # Body de la respuesta
-    duration_ms: float = None,  # Tiempo de ejecución
-    message_info: str = None,   # Info adicional
-    tags: list = None,          # Tags para filtrar
-)
-```
-
-## Ejemplo con FastAPI
-
-```python
-from fastapi import FastAPI, Request
-from digital_edd_logger import logger
-import uuid
-import time
-
-app = FastAPI()
-
-@app.post("/api/orders")
-async def create_order(request: Request):
-    trace_id = str(uuid.uuid4())
-    start = time.time()
-    
-    body = await request.json()
-    result = {"order_id": "12345"}
-    
-    logger.log(
-        trace_id=trace_id,
-        action="ORDER_CREATED",
-        context="OrderController",
-        method="POST",
-        path="/api/orders",
-        request_body=body,
-        status_code=200,
-        response_body=result,
-        duration_ms=(time.time() - start) * 1000,
-    )
-    
-    return result
-```
 
 ## Variables de Entorno
 
-| Variable | Descripción | Requerido |
-|----------|-------------|-----------|
-| `DB_URL` | URL de PostgreSQL | Solo en local |
-| `ENV` | `local` para forzar PostgreSQL | Opcional |
-| `GOOGLE_CLOUD_PROJECT` | Project ID de GCP | Solo en prod |
-| `SDKTRACKING_PUBLISH` | `false` para deshabilitar | Opcional |
-| `PUBSUB_TOPIC_NAME` | Nombre del topic | Opcional (default: `digital-edd-sdk`) |
+| Variable               | Descripción                    | Requerido                             |
+|------------------------|--------------------------------|---------------------------------------|
+| `DB_URL`               | URL de PostgreSQL              | Solo en local                         |
+| `ENV`                  | `local` para forzar PostgreSQL | Opcional                              |
+| `GOOGLE_CLOUD_PROJECT` | Project ID de GCP              | Solo en prod                          |
+| `SDKTRACKING_PUBLISH`  | `false` para deshabilitar      | Opcional                              |
+| `PUBSUB_TOPIC_NAME`    | Nombre del topic               | Opcional (default: `digital-edd-sdk`) |
